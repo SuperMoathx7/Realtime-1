@@ -1,8 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall
 LDFLAGS = -lglut -lGLU -lGL
-
-SRC = referee.c player.c gui.c
+SRC = referee.c gui.c
 OBJ = $(SRC:.c=.o)
 EXEC = game
 
@@ -16,5 +15,3 @@ $(EXEC): $(OBJ)
 
 clean:
 	rm -f $(OBJ) $(EXEC)
-
-
