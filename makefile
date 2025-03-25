@@ -4,7 +4,7 @@ LDFLAGS = -lglut -lGLU -lGL
 
 SRC = referee.c player.c gui.c
 OBJ = $(SRC:.c=.o)
-EXEC = rope_game
+EXEC = game
 
 all: $(EXEC)
 
