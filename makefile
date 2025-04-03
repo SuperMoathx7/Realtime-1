@@ -1,4 +1,3 @@
 run:
-	gcc main.c readInputs.c -o main
-	echo "-------------------------------\n"
-	./main
+	gcc habedtime2.c -o habedtime2 -lglut -lGL -lGLU -lm
+
