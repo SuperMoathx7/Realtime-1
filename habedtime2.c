@@ -14,14 +14,19 @@
 #define WINDOW_WIDTH   1500
 #define WINDOW_HEIGHT  800
 
-#define NUM_TEAMS       2
-#define MEMBERS_PER_TEAM 4
-#define TOTAL_PLAYERS   (NUM_TEAMS * MEMBERS_PER_TEAM)
+#define NUM_TEAMS 2//
+#define MEMBERS_PER_TEAM 4//
+#define TOTAL_PLAYERS (NUM_TEAMS * MEMBERS_PER_TEAM)
 
-#define INIT_ENERGY_MIN 80
-#define INIT_ENERGY_MAX 100
-#define DECAY_RATE_MIN   1
-#define DECAY_RATE_MAX   5
+int INIT_ENERGY_MIN;//
+int INIT_ENERGY_MAX; //
+int DECAY_RATE_MIN;//
+int DECAY_RATE_MAX;//
+int RECOVERY_TIME_MIN;
+int RECOVERY_TIME_MAX;
+int GAME_DURATION;
+int STREAK_TO_WIN;
+int THRESHOLD_TO_WIN;
 
 // ---------------- Message Structure ----------------
 // type: 0 = periodic update, 1 = alignment update, 2 = pulling update.
@@ -46,9 +51,7 @@ typedef struct {
     pid_t pid;             // associated child's PID
 } PlayerInfo;
 
-PlayerInfo players[TOTAL_PLAYERS];
-
-#define SIGUSR3 (SIGRTMIN + 0)
+PlayerInfo players[TOTAL_PLAYERS]; //must be changed if total number of players were changed.
 
 // ---------------- Global IPC Descriptors ----------------
 int pipefd[2];     // pipefd[0] is used by the parent for reading; pipefd[1] is inherited by children.
@@ -89,6 +92,28 @@ void child_process(int team, int member);
 void alignment_handler(int sig);
 void pulling_handler(int sig);
 void renderBitmapString(float x, float y, void *font, char *string);
+void readFile(const char *filename);
+
+
+void readFile(const char *filename) {
+    FILE *file = fopen(filename, "r");
+if (!file) {
+    perror("Failed to open file");
+    exit(EXIT_FAILURE);
+}
+    fscanf(file, "energy_min=%d\n", &INIT_ENERGY_MIN);
+    fscanf(file, "energy_max=%d\n", &INIT_ENERGY_MAX);
+    fscanf(file, "decay_min=%d\n", &DECAY_RATE_MIN);
+    fscanf(file, "decay_max=%d\n", &DECAY_RATE_MAX);
+
+    fscanf(file, "recovery_min=%d\n", &RECOVERY_TIME_MIN);
+    fscanf(file, "recovery_max=%d\n", &RECOVERY_TIME_MAX);
+    fscanf(file, "threshold_to_win=%d\n", &THRESHOLD_TO_WIN);
+    fscanf(file, "game_duration=%d\n", &GAME_DURATION);
+    fscanf(file, "score_limit_conv=%d\n", &STREAK_TO_WIN);
+    fclose(file);
+}
+
 
 void drawCircle(float cx, float cy, float r) {
     glBegin(GL_TRIANGLE_FAN);
@@ -190,6 +215,55 @@ void display(void) {
     glColor3f(0.0, 0.0, 0.0);
     renderBitmapString(10, WINDOW_HEIGHT - 180, GLUT_BITMAP_HELVETICA_18, distanceText);
   
+    if (game_phase == 2 || game_phase == 1) {
+        // --------- Display Team Efforts in Field (bottom center) ---------
+    
+        int team1_effort = 0;
+        int team2_effort = 0;
+        int t1 = 0, t2 = 0;
+        int team1_idx[MEMBERS_PER_TEAM], team2_idx[MEMBERS_PER_TEAM];
+    
+        for (int i = 0; i < TOTAL_PLAYERS; i++) {
+            if (players[i].team == 1)
+                team1_idx[t1++] = i;
+            else if (players[i].team == 2)
+                team2_idx[t2++] = i;
+        }
+    
+        for (int i = 0; i < MEMBERS_PER_TEAM - 1; i++) {
+            for (int j = i + 1; j < MEMBERS_PER_TEAM; j++) {
+                if (players[team1_idx[i]].energy > players[team1_idx[j]].energy) {
+                    int tmp = team1_idx[i];
+                    team1_idx[i] = team1_idx[j];
+                    team1_idx[j] = tmp;
+                }
+                if (players[team2_idx[i]].energy > players[team2_idx[j]].energy) {
+                    int tmp = team2_idx[i];
+                    team2_idx[i] = team2_idx[j];
+                    team2_idx[j] = tmp;
+                }
+            }
+        }
+    
+        for (int i = 0; i < MEMBERS_PER_TEAM; i++) {
+            team1_effort += players[team1_idx[i]].energy * (i + 1);
+            team2_effort += players[team2_idx[i]].energy * (i + 1);
+        }
+    
+        // Display Team 1 effort
+        char effortT1[50];
+        sprintf(effortT1, "Team 1 Effort: %d", team1_effort);
+        glColor3f(1.0, 0.0, 0.0);
+        renderBitmapString(WINDOW_WIDTH / 2 - 170, 100, GLUT_BITMAP_HELVETICA_18, effortT1);
+    
+        // Display Team 2 effort
+        char effortT2[50];
+        sprintf(effortT2, "Team 2 Effort: %d", team2_effort);
+        glColor3f(0.0, 0.0, 1.0);
+        renderBitmapString(WINDOW_WIDTH / 2 + 20, 100, GLUT_BITMAP_HELVETICA_18, effortT2);
+    
+        // ---------------------------------------------------------------
+    }
     
     glutSwapBuffers();
 }
@@ -244,7 +318,7 @@ void alignPlayers(void) {
                 } 
             }
 
-           int align = 20;
+           int align = 60;
            for (int m = 0; m < 4; m++) {
                 if (team == 1) { // Left team
                     players[idx[m]].targetX = WINDOW_WIDTH/2 - align;
@@ -403,7 +477,7 @@ void updateScoreTimer(int value) {
             }
             current_round++;
             for (int i = 0; i < TOTAL_PLAYERS; i++)
-                kill(players[i].pid, SIGUSR3);
+                kill(players[i].pid, SIGPWR);
             glutTimerFunc(1000, timer, 0);
             printf("called the timer\n");
             // Reset everything for the new round
@@ -469,10 +543,10 @@ void child_process(int team, int member) {
     
     printf("Player created: Team %d Member %d, PID %d, Initial Energy = %d, Decay = %d\n",team, member, getpid(), child_energy, child_decay);
     
-    // Set signal handlers using sigset().
-    sigset(SIGUSR1, alignment_handler);  // Handle alignment signal.
-    sigset(SIGUSR2, pulling_handler);   // Handle pulling signal.
-    sigset(SIGUSR3, newrnd);
+    // Set signal handlers using sigset(). if the child gets these signals, go to a custom function, not doing the default behavior.
+    sigset(SIGUSR1, alignment_handler);     // Handle alignment signal.
+    sigset(SIGUSR2, pulling_handler);       // Handle pulling signal.
+    sigset(SIGPWR, newrnd);                //
     // Assign the inherited write end of the pipe.
     child_pipe_fd = pipefd[1];
     
@@ -496,7 +570,7 @@ void child_process(int team, int member) {
             // Decrement energy during the pulling phase.
             child_energy -= child_decay;
             if(child_energy <= 0){ child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
-            if (child_energy <= 0) {
+            if (child_energy <= 0) { // it won't enter this!!
                 // Set energy to 0, send the exhaustion update, and exit.
                 child_energy = 0;
                 EffortMsg msg;
@@ -525,7 +599,7 @@ void child_process(int team, int member) {
 }
 
 int main(){
-
+    readFile("inputs.txt");
     srand(time(NULL));
     
     if (pipe(pipefd) == -1) {
@@ -535,9 +609,9 @@ int main(){
     pipe_read_fd = pipefd[0];
     
     int flags = fcntl(pipe_read_fd, F_GETFL, 0);
-    fcntl(pipe_read_fd, F_SETFL, flags | O_NONBLOCK);
+    fcntl(pipe_read_fd, F_SETFL, flags | O_NONBLOCK); // changing the pipe to be non-blocking, - when reading the pipe with no data, it won't stuck.
     
-    mkfifo("effort_fifo", 0666);
+    //mkfifo("effort_fifo", 0666); //makes named pipe -fifo- to enable communication between unrelated processes, but it is not used till now!
 
     int idx = 0;
 
@@ -548,11 +622,11 @@ int main(){
                 perror("fork failed");
                 exit(EXIT_FAILURE);
             }
-            if (pid == 0) {
+            if (pid == 0) { // the same child.
                 //printf("Hello child %d %d  %d\n", idx ,getpid(), pid);
                 child_process(i + 1, j + 1);
                 exit(EXIT_SUCCESS);
-            } else {
+            } else { //parent of them all.
                 //printf("parent %d %d\n", getpid(),pid);
                 players[idx].team = i + 1;
                 players[idx].member = j + 1;
@@ -562,8 +636,8 @@ int main(){
                 players[idx].y = (float)(rand() % (WINDOW_HEIGHT - 50) + 25);
                 players[idx].targetX = players[idx].x;
                 players[idx].targetY = players[idx].y;
-                players[idx].energy = 0;
-                players[idx].effort = 0;
+                players[idx].energy = 0; // why zero??
+                players[idx].effort = 0; // why zero??
                 idx++;
             }
         }

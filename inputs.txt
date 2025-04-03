@@ -1,7 +1,9 @@
-5 60
-10 30
-1 2 3 4
-5 30
-80
-100
-5
+energy_min=10
+energy_max=30
+decay_min=1
+decay_max=3
+recovery_min=2
+recovery_max=5
+threshold=900
+game_duration=120
+score_limit=2
