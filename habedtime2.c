@@ -9,7 +9,7 @@
 #include <string.h>
 #include <errno.h>
 #include <GL/glut.h>
-
+#include <GL/freeglut.h>
 // ---------------- Configuration Macros ----------------
 #define WINDOW_WIDTH   1500
 #define WINDOW_HEIGHT  800
