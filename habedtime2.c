@@ -27,6 +27,7 @@ int RECOVERY_TIME_MAX;
 int GAME_DURATION;
 int STREAK_TO_WIN;
 int THRESHOLD_TO_WIN;
+int COPY_GAME_DURATION;
 
 // ---------------- Message Structure ----------------
 // type: 0 = periodic update, 1 = alignment update, 2 = pulling update.
@@ -35,7 +36,7 @@ typedef struct {
     int team;       // 1 or 2
     int member;     // e.g., 1 or 2
     int effort;     // computed as energy/decay_rate (child-side computation)
-    int energy;     // current energy (child-side)
+    int energy,decay,returnAfter;     // current energy (child-side)
     int type;       // message type
 } EffortMsg;
 
@@ -43,7 +44,7 @@ typedef struct {
 typedef struct {
     int team;
     int member;
-    int energy;            // updated from child's messages
+    int energy,decay,returnAfter;            // updated from child's messages
     int effort;            // reported effort (without parent's multiplier)
     float x, y;            // current display position
     float targetX, targetY;// target positions (set during alignment and pulling)
@@ -60,7 +61,7 @@ int pipe_read_fd;  // alias for parent's read end
 // ---------------- Globals in Child Processes ----------------
 // (Each child)
 int child_team, child_member;
-volatile int child_energy, child_decay;
+volatile int child_energy, child_decay, child_return_after;
 // Before pulling phase, energy remains constant.
 // Once pulling_flag is set (via SIGUSR2), energy decay begins.
 volatile int pulling_flag = 0;
@@ -72,7 +73,7 @@ int score_team1 = 0, score_team2 = 0;
 // Global totalEffort computed from effective efforts (updated in updateScoreTimer).
 int global_totalEffort = 0;
 
-int total_rounds = 1;         // Total number of rounds in the game
+int total_rounds;         // Total number of rounds in the game
 int current_round = 1;        // Current round number
 int prev_round = 1;
 int rounds_won_team1 = 0;     // Rounds won by Team 1
@@ -93,7 +94,42 @@ void alignment_handler(int sig);
 void pulling_handler(int sig);
 void renderBitmapString(float x, float y, void *font, char *string);
 void readFile(const char *filename);
+void handleClose();
+void countdownTimer(int value);
 
+
+void countdownTimer(int value) {
+    if (game_phase == 2 && COPY_GAME_DURATION > 0) {  // Pulling phase
+        COPY_GAME_DURATION--;
+        glutPostRedisplay(); // Update display
+    }
+
+    // Keep calling every second regardless, but only decrement if in phase 2
+    if (COPY_GAME_DURATION > 0) {
+        glutTimerFunc(1000, countdownTimer, 0);
+    } else if (COPY_GAME_DURATION <= 0) {
+        printf("Sumulation ends: Game Duration ends!\n");
+
+
+        //current_round++;
+        for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
+        exit(0);
+        
+        //COPY_GAME_DURATION = GAME_DURATION;
+
+        //glutTimerFunc(1000, timer, 0);
+    }
+}
+
+void handleClose() {  //this kills all related processes when the user closes the GUI.
+    printf("Window closed by user. Cleaning up...\n");
+    
+    for (int i = 0; i < TOTAL_PLAYERS; i++) {
+        kill(players[i].pid, SIGKILL);
+    }
+
+    exit(0);
+}
 
 void readFile(const char *filename) {
     FILE *file = fopen(filename, "r");
@@ -108,10 +144,11 @@ if (!file) {
 
     fscanf(file, "recovery_min=%d\n", &RECOVERY_TIME_MIN);
     fscanf(file, "recovery_max=%d\n", &RECOVERY_TIME_MAX);
-    fscanf(file, "threshold_to_win=%d\n", &THRESHOLD_TO_WIN);
+    fscanf(file, "threshold=%d\n", &THRESHOLD_TO_WIN);
     fscanf(file, "game_duration=%d\n", &GAME_DURATION);
-    fscanf(file, "score_limit_conv=%d\n", &STREAK_TO_WIN);
+    fscanf(file, "score_limit=%d\n", &STREAK_TO_WIN);
     fscanf(file, "total_rounds=%d\n", &total_rounds);
+    COPY_GAME_DURATION = GAME_DURATION;
     fclose(file);
 }
 
@@ -180,6 +217,10 @@ glLineWidth(1.0f); // Reset to default
         sprintf(energyText, "E:%d", players[i].energy);
         glColor3f(0.0, 0.0, 0.0);
         renderBitmapString(players[i].x - players[i].radius,players[i].y - players[i].radius - 15,GLUT_BITMAP_HELVETICA_12,energyText);
+        char decatText[20];
+        sprintf(decatText, "D:%d", players[i].decay);
+        glColor3f(0.0, 0.0, 0.0);
+        renderBitmapString(players[i].x - players[i].radius,players[i].y - players[i].radius - 30,GLUT_BITMAP_HELVETICA_12,decatText);
     }
     
     // // Draw score information.
@@ -230,6 +271,18 @@ glLineWidth(1.0f); // Reset to default
     glColor3f(0.0, 0.0, 1.0);
     renderBitmapString(10, WINDOW_HEIGHT - 160, GLUT_BITMAP_HELVETICA_18, roundsWonText2);
     
+
+
+
+    //for Timer
+    char timerText[50];
+    sprintf(timerText, "Timer: %d", COPY_GAME_DURATION);
+    glColor3f(0.0, 0.0, 0.0);
+    renderBitmapString(WINDOW_WIDTH/2 - 40, WINDOW_HEIGHT -100 , GLUT_BITMAP_HELVETICA_18, timerText);
+
+
+
+
     // Display computed distance
     // char distanceText[50];
     // sprintf(distanceText, "Distance: %d (Threshold: %d, Needed: %d)", abs(global_totalEffort), totalEffort_threshold, user_defined_distance);
@@ -305,6 +358,8 @@ void alignPlayers(void) {
                 if (players[i].pid == msg.pid) {
                     players[i].energy = msg.energy;
                     players[i].effort = msg.effort;
+                    players[i].decay = msg.decay;
+                    players[i].returnAfter=msg.returnAfter;
                     break;
                 }
             }
@@ -377,6 +432,8 @@ void updateFromPipe(void) {
             if (players[i].pid == msg.pid) {
                 players[i].energy = msg.energy;
                 players[i].effort = msg.effort;
+                players[i].decay = msg.decay;
+                players[i].returnAfter=msg.returnAfter;
                 break;
             }
         }
@@ -392,7 +449,7 @@ void updateFromPipe(void) {
 
 void timer(int value) {
     timercaller++;
-    if(current_round > total_rounds +1 ){
+    if(current_round > total_rounds ){
         printf("Terminating...\n");
         glutLeaveMainLoop();
         return;
@@ -409,6 +466,12 @@ void timer(int value) {
     printf("local phase is: %d\n", local_phase);
     if (local_phase == 0) {
         printf("\nReferee: Triggering alignment phase...\n");
+        if(current_round > total_rounds +1 ){
+            printf("Terminating...\n");
+            glutLeaveMainLoop();
+            return;
+            //exit(0);
+        }
         glutIdleFunc(NULL);
         alignPlayers();
         local_phase = 1;
@@ -438,8 +501,9 @@ void timer(int value) {
 
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
-    
-    if (game_phase == 2 && current_round < total_rounds +1) { // if in pulling phase.
+    printf("Current round is: %d *************\n", current_round);
+    if (game_phase == 2 && current_round < total_rounds ) { // if in pulling phase.
+        printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
         int team2_effort = 0;
         int team1_idx[4], team2_idx[4];
@@ -447,6 +511,7 @@ void updateScoreTimer(int value) {
 
         // Collect indices per team
         for (int i = 0; i < TOTAL_PLAYERS; i++) {
+            printf("Player %d targetX: %f\n", i, players[i].targetX);
             if (players[i].team == 1)
                 team1_idx[t1++] = i;
             else if (players[i].team == 2)
@@ -573,6 +638,9 @@ void alignment_handler(int sig) {
     msg.member = child_member;
     msg.effort = child_energy / ((child_decay == 0) ? 1 : child_decay);
     msg.energy = child_energy;
+    msg.decay = child_decay;
+    msg.returnAfter = child_return_after;
+
     msg.type = 1;  // alignment update
     write(child_pipe_fd, &msg, sizeof(msg));
 }
@@ -585,6 +653,8 @@ void pulling_handler(int sig) {
     msg.member = child_member;
     msg.effort = child_energy / ((child_decay == 0) ? 1 : child_decay);
     msg.energy = child_energy;
+    msg.decay = child_decay;
+    msg.returnAfter = child_return_after;
     msg.type = 2;  // pulling update
     write(child_pipe_fd, &msg, sizeof(msg));
 }
@@ -594,7 +664,9 @@ void newrnd(int sig){
     //check if the new round larger than the total round, then terminate.
     if(current_round >= total_rounds +1){
         //terminate
+       
         for(int k=0;k<TOTAL_PLAYERS; k++) kill(players[k].pid,SIGKILL);
+        exit(0);
     }
     pulling_flag = 0;
 }
@@ -606,6 +678,8 @@ void child_process(int team, int member) {
     child_member = member;
     child_energy = INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);
     child_decay = DECAY_RATE_MIN + rand() % (DECAY_RATE_MAX - DECAY_RATE_MIN + 1);
+    child_return_after = RECOVERY_TIME_MIN + rand() % (RECOVERY_TIME_MAX - RECOVERY_TIME_MIN + 1);
+
     
     printf("Player created: Team %d Member %d, PID %d, Initial Energy = %d, Decay = %d\n",team, member, getpid(), child_energy, child_decay);
     
@@ -621,23 +695,27 @@ void child_process(int team, int member) {
         //printf("current rnd from child: %d\n", current_round);
         if(current_round < total_rounds +1){
             //printf("current rnd from child: %d\n", current_round);
+            //printf("Cat\n");
+            //enters this always.
         }
         else if(current_round == total_rounds){
            //printf("current rnd from childdd: %d\n", current_round);
-           
+           printf("my name\n");
         }
         else{
             printf("i am here exiting\n");
-            printf("moazzzzz");
+            printf("moazzzzz\n");
             exit(0);
         }
         
         sleep(1);  // Wait for one second per iteration.
         
-        if (pulling_flag) { printf("inside the if");
+        if (pulling_flag) { //enters in pulling phase.
+            
+           // printf("inside the if");
             // Decrement energy during the pulling phase.
             child_energy -= child_decay;
-            if(child_energy <= 0){ child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
+            //if(child_energy <= 0){ child_energy=0; sleep(5);child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
             if (child_energy <= 0) { // it won't enter this!!
                 // Set energy to 0, send the exhaustion update, and exit.
                 child_energy = 0;
@@ -647,10 +725,16 @@ void child_process(int team, int member) {
                 msg.member = child_member;
                 msg.effort = 0;
                 msg.energy = child_energy;
+                msg.decay = child_decay;
+                msg.returnAfter = child_return_after;
+                
                 msg.type = 0;  // periodic update
                 write(child_pipe_fd, &msg, sizeof(msg));
-                printf("Player (Team %d Member %d, PID %d) is exhausted.\n",child_team, child_member, getpid());
-                exit(0);
+                printf("Player (Team %d Member %d, PID %d) is exhausted. they will return after %ds.\n",child_team, child_member, getpid(),child_return_after);
+                exit(0); //if they got exhasted they will die, but if they fall, they will return back.
+
+
+                //sleep(child_return_after);child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);
             }
         }
         
@@ -661,6 +745,8 @@ void child_process(int team, int member) {
         msg.member = child_member;
         msg.effort = child_energy / ((child_decay == 0) ? 1 : child_decay);
         msg.energy = child_energy;
+        msg.decay = child_decay;
+        msg.returnAfter = child_return_after;
         msg.type = 0;  // periodic update
         write(child_pipe_fd, &msg, sizeof(msg));
     }
@@ -707,6 +793,8 @@ int main(){
                 players[idx].targetY = players[idx].y;
                 players[idx].energy = 0; // why zero??
                 players[idx].effort = 0; // why zero??
+                players[idx].decay = 0;
+                players[idx].returnAfter=0;
                 idx++;
             }
         }
@@ -720,7 +808,9 @@ int main(){
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
     glutInitWindowPosition(100, 100);
+    glutTimerFunc(1000, countdownTimer, 0);
     glutCreateWindow("Rope Pulling Game Simulation");
+    glutWMCloseFunc(handleClose); //this kills all related processes when the user closes the GUI.
     initGL();
     glutDisplayFunc(display);
     glutIdleFunc(updateFromPipe);
@@ -730,3 +820,14 @@ int main(){
     glutMainLoop();
     return 0;
 }
+
+
+
+//remaining things:
+//  1-There is a bug When starting a new round.
+//  2-Accidentally falling.
+//  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+//  4-Stop when reaching Win Streak.
+//  5-Parent must tell Childs that their team won or lost.
+//  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
+//  7-Energy in new round didn't generated again, it contiunues with the last values.

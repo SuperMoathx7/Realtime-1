@@ -1,11 +1,11 @@
-energy_min=10
-energy_max=30
-decay_min=1
-decay_max=3
-recovery_min=2
-recovery_max=5
+energy_min=60
+energy_max=80
+decay_min=5
+decay_max=6
+recovery_min=1
+recovery_max=3
 threshold=900
-game_duration=120
+game_duration=150
 score_limit=2
-total_rounds=5
+total_rounds=2
 
