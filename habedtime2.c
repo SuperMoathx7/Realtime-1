@@ -7,6 +7,7 @@
 //  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
 //  7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
