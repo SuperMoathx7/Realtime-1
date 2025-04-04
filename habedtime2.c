@@ -22,6 +22,7 @@
 // ---------------- Configuration Macros ----------------
 #define WINDOW_WIDTH   1500
 #define WINDOW_HEIGHT  800
+#define M_PI 3.14159265358979323846
 
 #define NUM_TEAMS 2//
 #define MEMBERS_PER_TEAM 4//
