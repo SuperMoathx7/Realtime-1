@@ -1,4 +1,12 @@
-#include <stdio.h>
+//remaining things:
+//  1-There is a bug When starting a new round.
+//  2-Accidentally falling.
+//  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+//  4-Stop when reaching Win Streak.
+//  5-Parent must tell Childs that their team won or lost.
+//  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
+//  7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h>
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -822,12 +830,3 @@ int main(){
 }
 
 
-
-//remaining things:
-//  1-There is a bug When starting a new round.
-//  2-Accidentally falling.
-//  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-//  4-Stop when reaching Win Streak.
-//  5-Parent must tell Childs that their team won or lost.
-//  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
-//  7-Energy in new round didn't generated again, it contiunues with the last values.
