@@ -1,3 +1,3 @@
 run:
-	gcc habedtime2.c -o habedtime2 -lglut -lGL -lGLU -lm
+	gcc habedtime2.c -o habedtime2 -lglut -lGL -lGLU -lm -Wall
 	./habedtime2

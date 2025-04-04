@@ -69,16 +69,16 @@ int child_pipe_fd; // inherited write end
 // ---------------- Global for Parent ----------------
 int game_phase = 0; // 0 = waiting for alignment, 1 = aligned, 2 = pulling active
 int score_team1 = 0, score_team2 = 0;
-// Global delta computed from effective efforts (updated in updateScoreTimer).
-int global_delta = 0;
+// Global totalEffort computed from effective efforts (updated in updateScoreTimer).
+int global_totalEffort = 0;
 
-int total_rounds = 5;         // Total number of rounds in the game
+int total_rounds = 1;         // Total number of rounds in the game
 int current_round = 1;        // Current round number
 int prev_round = 1;
 int rounds_won_team1 = 0;     // Rounds won by Team 1
 int rounds_won_team2 = 0;     // Rounds won by Team 2
-int user_defined_distance = 50;  // Distance needed to win a round (user-defined)
-int delta_threshold = 20;     // Delta threshold to compute distance
+int user_defined_distance = 500;  // Distance needed to win a round (user-defined)
+int totalEffort_threshold = 20;     // totalEffort threshold to compute distance
 int timercaller = 0;
 // ---------------- Function Declarations ----------------
 void initGL(void);
@@ -111,6 +111,7 @@ if (!file) {
     fscanf(file, "threshold_to_win=%d\n", &THRESHOLD_TO_WIN);
     fscanf(file, "game_duration=%d\n", &GAME_DURATION);
     fscanf(file, "score_limit_conv=%d\n", &STREAK_TO_WIN);
+    fscanf(file, "total_rounds=%d\n", &total_rounds);
     fclose(file);
 }
 
@@ -149,7 +150,23 @@ void display(void) {
        glVertex2f(0, WINDOW_HEIGHT / 2);
        glVertex2f(WINDOW_WIDTH, WINDOW_HEIGHT / 2);
     glEnd();
+    // Draw dashed vertical midpoint line
     
+
+glColor3f(0.7f, 0.0f, 0.0f); // Slightly darker red for visibility
+glLineWidth(2.0f);
+
+float dashLength = 10.0f;
+float gapLength = 1.0f;
+
+for (float y = WINDOW_HEIGHT /4; y < (3 * WINDOW_HEIGHT) /4; y += dashLength + gapLength) {
+    glBegin(GL_LINES);
+        glVertex2f(WINDOW_WIDTH / 2, y);
+        glVertex2f(WINDOW_WIDTH / 2, y + dashLength);
+    glEnd();
+}
+
+glLineWidth(1.0f); // Reset to default
     // Draw each player.
     for (int i = 0; i < TOTAL_PLAYERS; i++) {
         if (players[i].team == 1)
@@ -165,35 +182,39 @@ void display(void) {
         renderBitmapString(players[i].x - players[i].radius,players[i].y - players[i].radius - 15,GLUT_BITMAP_HELVETICA_12,energyText);
     }
     
-    // Draw score information.
-    char scoreLabel[50] = "Score:";
+    // // Draw score information.
+    // char scoreLabel[50] = "Score:";
+    // glColor3f(0.0, 0.0, 0.0);
+    // renderBitmapString(10, WINDOW_HEIGHT - 20, GLUT_BITMAP_HELVETICA_18, scoreLabel);
+    
+    // char score1Text[50], score2Text[50];
+    // sprintf(score1Text, "Team 1 (Red): %d", score_team1);
+    // sprintf(score2Text, "Team 2 (Blue): %d", score_team2);
+    // glColor3f(1.0, 0.0, 0.0);
+    // renderBitmapString(10, WINDOW_HEIGHT - 40, GLUT_BITMAP_HELVETICA_18, score1Text);
+    // glColor3f(0.0, 0.0, 1.0);
+    // renderBitmapString(10, WINDOW_HEIGHT - 60, GLUT_BITMAP_HELVETICA_18, score2Text);
+    
+    // Display totalEffort.
+    if (game_phase == 2 || game_phase == 1) {
+    char totalEffortText[50];
+    sprintf(totalEffortText, "Total Effort: %d", global_totalEffort);
     glColor3f(0.0, 0.0, 0.0);
-    renderBitmapString(10, WINDOW_HEIGHT - 20, GLUT_BITMAP_HELVETICA_18, scoreLabel);
-    
-    char score1Text[50], score2Text[50];
-    sprintf(score1Text, "Team 1 (Red): %d", score_team1);
-    sprintf(score2Text, "Team 2 (Blue): %d", score_team2);
-    glColor3f(1.0, 0.0, 0.0);
-    renderBitmapString(10, WINDOW_HEIGHT - 40, GLUT_BITMAP_HELVETICA_18, score1Text);
-    glColor3f(0.0, 0.0, 1.0);
-    renderBitmapString(10, WINDOW_HEIGHT - 60, GLUT_BITMAP_HELVETICA_18, score2Text);
-    
-    // Display delta.
-    char deltaText[50];
-    sprintf(deltaText, "Delta: %d", global_delta);
-    glColor3f(0.0, 0.0, 0.0);
-    renderBitmapString(10, WINDOW_HEIGHT - 80, GLUT_BITMAP_HELVETICA_18, deltaText);
-    
+    renderBitmapString(WINDOW_WIDTH / 2 -50, 60, GLUT_BITMAP_HELVETICA_18, totalEffortText);
+    }
+
+
     // Display heading information.
     char headingText[50];
-    if (global_delta > 0)
+    if (global_totalEffort > 0)
         sprintf(headingText, "Heading: Team 1 is winning");
-    else if (global_delta < 0)
+    else if (global_totalEffort < 0)
         sprintf(headingText, "Heading: Team 2 is winning");
     else
         sprintf(headingText, "Heading: Tie");
     glColor3f(0.0, 0.0, 0.0);
     renderBitmapString(10, WINDOW_HEIGHT - 100, GLUT_BITMAP_HELVETICA_18, headingText);
+
     // Display current round
     char roundText[50];
     sprintf(roundText, "Round: %d/%d", current_round, total_rounds);
@@ -210,10 +231,10 @@ void display(void) {
     renderBitmapString(10, WINDOW_HEIGHT - 160, GLUT_BITMAP_HELVETICA_18, roundsWonText2);
     
     // Display computed distance
-    char distanceText[50];
-    sprintf(distanceText, "Distance: %d (Threshold: %d, Needed: %d)", abs(global_delta), delta_threshold, user_defined_distance);
-    glColor3f(0.0, 0.0, 0.0);
-    renderBitmapString(10, WINDOW_HEIGHT - 180, GLUT_BITMAP_HELVETICA_18, distanceText);
+    // char distanceText[50];
+    // sprintf(distanceText, "Distance: %d (Threshold: %d, Needed: %d)", abs(global_totalEffort), totalEffort_threshold, user_defined_distance);
+    // glColor3f(0.0, 0.0, 0.0);
+    // renderBitmapString(10, WINDOW_HEIGHT - 180, GLUT_BITMAP_HELVETICA_18, distanceText);
   
     if (game_phase == 2 || game_phase == 1) {
         // --------- Display Team Efforts in Field (bottom center) ---------
@@ -371,7 +392,7 @@ void updateFromPipe(void) {
 
 void timer(int value) {
     timercaller++;
-    if(current_round > total_rounds){
+    if(current_round > total_rounds +1 ){
         printf("Terminating...\n");
         glutLeaveMainLoop();
         return;
@@ -416,9 +437,9 @@ void timer(int value) {
 }
 
 void updateScoreTimer(int value) {
-    printf("fucking phase is: %d\n", game_phase);
-    //printf("i am here: current round: %d, game phase: %d\n", current_round, game_phase);
-    if (game_phase == 2 && current_round <= total_rounds) {
+    printf("current phase is: %d\n", game_phase);
+    
+    if (game_phase == 2 && current_round < total_rounds +1) { // if in pulling phase.
         int team1_effort = 0;
         int team2_effort = 0;
         int team1_idx[4], team2_idx[4];
@@ -453,29 +474,54 @@ void updateScoreTimer(int value) {
             } 
         }
 
-
+        //******************************************* */
+// Midpoint defeat rule: if any player crosses the center line, their team loses
+for (int i = 0; i < TOTAL_PLAYERS; i++) {
+    if (players[i].team == 1 && players[i].x >= (WINDOW_WIDTH / 2) -15) {
+        // Team 1 crossed the center - lose the round
+        rounds_won_team2++;
+        printf("Team 1 crossed the midpoint! Team 2 wins Round %d by rule.\n", current_round);
+        current_round++;
+        for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
+        glutTimerFunc(1000, timer, 0);
+        return;
+    }
+    if (players[i].team == 2 && players[i].x <= (WINDOW_WIDTH / 2) +15) {
+        // Team 2 crossed the center - lose the round
+        rounds_won_team1++;
+        printf("Team 2 crossed the midpoint! Team 1 wins Round %d by rule.\n", current_round);
+        current_round++;
+        for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
+        glutTimerFunc(1000, timer, 0);
+        return;
+    }
+}
+//******************************************************************* */
         // Calculate effective efforts
         team1_effort = players[team1_idx[0]].energy * 1 + players[team1_idx[1]].energy * 2 + players[team1_idx[2]].energy * 3 + players[team1_idx[3]].energy * 4;
         team2_effort = players[team2_idx[0]].energy * 1 + players[team2_idx[1]].energy * 2 + players[team2_idx[2]].energy * 3 + players[team2_idx[3]].energy * 4;
 
-        // Compute delta
-        int delta = team1_effort - team2_effort;
-        global_delta = delta;
+        // Compute totalEffort
+        int totalEffort = team1_effort - team2_effort;
+        global_totalEffort = totalEffort;
 
-        // Compute distance based on delta exceeding the threshold
-        int distance = (abs(delta) > delta_threshold) ? abs(delta) - delta_threshold : 0;
-        printf("distance is : %d\n", distance);
+
+        //i changed the win criteria, the team wins if the another team reached the midpoint line.
+
+        // Compute distance based on totalEffort exceeding the threshold
+        //int distance = (abs(totalEffort) > totalEffort_threshold) ? abs(totalEffort) - totalEffort_threshold : 0;
+        //printf("distance is : %d\n", distance);
         // Check if a team has won the round
-        if (distance >= user_defined_distance) {
+       /* if (distance >= user_defined_distance) {
            // printf("i am entering here fella\n");
-            if (delta > 0) {
+            if (totalEffort > 0) {
                 rounds_won_team1++;
                 printf("Team 1 wins Round %d!\n", current_round);
-            } else if (delta < 0) {
+            } else if (totalEffort < 0) {
                 rounds_won_team2++;
                 printf("Team 2 wins Round %d!\n", current_round);
             }
-            current_round++;
+            current_round++; 
             for (int i = 0; i < TOTAL_PLAYERS; i++)
                 kill(players[i].pid, SIGPWR);
             glutTimerFunc(1000, timer, 0);
@@ -495,9 +541,24 @@ void updateScoreTimer(int value) {
                 return; // No more rounds
             }
         }
-
+*/
         // Smaller displacement for clearer pulling effect
-        int displacement = (delta > 10) ? -10 : (delta < -10) ? 10 : 0;
+       /* int displacement = (totalEffort > 10) ? -10 : (totalEffort < -10) ? 10 : 0;
+        for (int i = 0; i < TOTAL_PLAYERS; i++) {
+            players[i].targetX += displacement;
+        }*/
+
+       // make the movement adjustable according to total effort.
+        float maxEffort = 100.0f; 
+        float effortFactor = (float)totalEffort / maxEffort;
+
+        // to prevent large steps.
+        if (effortFactor > 1.0f) effortFactor = 1.0f;
+        if (effortFactor < -1.0f) effortFactor = -1.0f;
+
+       
+        float displacement = -effortFactor * 15.0f;
+
         for (int i = 0; i < TOTAL_PLAYERS; i++) {
             players[i].targetX += displacement;
         }
@@ -530,6 +591,11 @@ void pulling_handler(int sig) {
 
 void newrnd(int sig){
     current_round++;
+    //check if the new round larger than the total round, then terminate.
+    if(current_round >= total_rounds +1){
+        //terminate
+        for(int k=0;k<TOTAL_PLAYERS; k++) kill(players[k].pid,SIGKILL);
+    }
     pulling_flag = 0;
 }
 
@@ -553,20 +619,22 @@ void child_process(int team, int member) {
     // Main simulation loop.
     while (1) {
         //printf("current rnd from child: %d\n", current_round);
-        if(current_round < total_rounds){
+        if(current_round < total_rounds +1){
             //printf("current rnd from child: %d\n", current_round);
         }
-        else if(current_round == 5){
+        else if(current_round == total_rounds){
            //printf("current rnd from childdd: %d\n", current_round);
+           
         }
         else{
             printf("i am here exiting\n");
+            printf("moazzzzz");
             exit(0);
         }
         
         sleep(1);  // Wait for one second per iteration.
         
-        if (pulling_flag) {
+        if (pulling_flag) { printf("inside the if");
             // Decrement energy during the pulling phase.
             child_energy -= child_decay;
             if(child_energy <= 0){ child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
@@ -618,6 +686,7 @@ int main(){
     for (int i = 0; i < NUM_TEAMS; i++) {
         for (int j = 0; j < MEMBERS_PER_TEAM; j++) {
             pid_t pid = fork();
+            sleep(0.3);
             if (pid < 0) {
                 perror("fork failed");
                 exit(EXIT_FAILURE);
@@ -643,7 +712,8 @@ int main(){
         }
     }
 
-    sleep(1);
+
+    //sleep(1);
     int argc = 1;
     char *argv[1] = { "RopeGame" };
     glutInit(&argc, argv);
@@ -656,7 +726,7 @@ int main(){
     glutIdleFunc(updateFromPipe);
     //timer(0);
     glutTimerFunc(5000, timer, 0);          // Phase transition timer.
-    glutTimerFunc(1000, updateScoreTimer, 0); // Score, delta, and uniform pulling update timer.
+    glutTimerFunc(1000, updateScoreTimer, 0); // Score, totalEffort, and uniform pulling update timer.
     glutMainLoop();
     return 0;
 }
