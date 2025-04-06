@@ -1,10 +1,10 @@
 //remaining things:
 //done  1-There is a bug When starting a new round. Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-//  2-Accidentally falling.
+//done  2-Accidentally falling.
 //done  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 //done  4-Stop when reaching Win Streak. Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 //  5-Parent must tell Childs that their team won or lost.
-//  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
+//done  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
 //done   7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h> doneeeeeeeeeeeee
 
 #include <stdio.h>
@@ -566,57 +566,6 @@ void updateFromPipe(void) {
     glutPostRedisplay();
 }
 
-// void timer(int value) {
-//     timercaller++;
-//     if(current_round > total_rounds ){
-//         printf("Terminating...\n");
-//         glutLeaveMainLoop();
-//         return;
-//         //exit(0);
-//     }
-//     static int local_phase = 0;
-//     printf("prev is: %d  curr is: %d\n", prev_round, current_round);
-//     if(prev_round != current_round){
-//         game_phase = 0;
-//         local_phase = 0;
-//         prev_round++;
-//     }
-//     //local_phase = 0;
-//     printf("local phase is: %d\n", local_phase);
-//     if (local_phase == 0) {
-//         printf("\nReferee: Triggering alignment phase...\n");
-//         if(current_round > total_rounds +1 ){
-//             printf("Terminating...\n");
-//             glutLeaveMainLoop();
-//             return;
-//             //exit(0);
-//         }
-//         glutIdleFunc(NULL);
-//         alignPlayers();
-//         local_phase = 1;
-//         game_phase = 1;
-//         glutIdleFunc(updateFromPipe);
-//         //sleep(5);
-//         //timer(0);
-//     } else if (local_phase == 1) {
-//         printf("\nReferee: Triggering pulling phase...\n");
-//         startPullingPhase();
-//         local_phase = 2;
-//         game_phase = 2;
-//     }
-
-
-//     if(timercaller != 2){
-//         glutTimerFunc(5000, timer, 0);
-//     }
-//     else{
-//         timercaller = 0;
-//     } 
-//     /*if (current_round <= total_rounds) {
-//         //timer(0);
-//         //
-//     }*/
-// }
 void timer(int value) {
     timercaller++;
     if(current_round > total_rounds){
@@ -654,6 +603,7 @@ void timer(int value) {
 
 
     if(timercaller != 2){
+        printf("entered here\n");
         glutTimerFunc(5000, timer, 0);
     }
     else{
@@ -668,9 +618,8 @@ void timer(int value) {
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
     printf("Current round is: %d *************\n", current_round);
-    // will execute only if in pulling phase.
     if (game_phase == 2 && current_round <= total_rounds ) { // if in pulling phase.
-        printf("Current round is: %d *************\n", current_round);
+        //printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
         int team2_effort = 0;
         int team1_idx[4], team2_idx[4];
@@ -678,14 +627,14 @@ void updateScoreTimer(int value) {
 
         // Collect indices per team
         for (int i = 0; i < TOTAL_PLAYERS; i++) {
-            printf("Player %d targetX: %f\n", i, players[i].targetX);
+           // printf("Player %d targetX: %f\n", i, players[i].targetX);
             if (players[i].team == 1)
                 team1_idx[t1++] = i;
             else if (players[i].team == 2)
                 team2_idx[t2++] = i;
         }
 
-        // Sort players in team 1 by energy in descending order
+
         for(int i =0; i < MEMBERS_PER_TEAM; i++){
             for(int j =0; j < MEMBERS_PER_TEAM; j++){
                 if (players[team1_idx[i]].energy < players[team1_idx[j]].energy) {
@@ -730,6 +679,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
+        printf("i am erroring here1\n");
         // return;
     }
     if (players[i].team == 2 && players[i].x <= (WINDOW_WIDTH / 2) +15) {
@@ -752,6 +702,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
+        printf("i am erroring here2\n");
         // return;
     }
 }
@@ -764,6 +715,22 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         int totalEffort = team1_effort - team2_effort;
         global_totalEffort = totalEffort;
 
+        int counter=0;
+        for(int k =0;k<TOTAL_PLAYERS;k++){
+            if(players[k].energy == 0) counter++;
+            
+            if(counter == 8){//Tie.........
+                printf("helllo from hell\n");
+                if(current_round+1 < total_rounds){current_round++;//the round will be counted, but no one wins.}
+                }
+                
+                printf("All players get tried! No one wins! Tieeeeeeeeeeeeeeeeee.\n");
+                for(int f=0;f<TOTAL_PLAYERS;f++)kill(players[f].pid,SIGPWR);//new round.
+                glutTimerFunc(1000, timer, 0);
+
+
+            }
+        }
 
         //i changed the win criteria, the team wins if the another team reached the midpoint line.
 
@@ -822,7 +789,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
             players[i].targetX += displacement;
         }
     }
-    printf("cccccccccccccccccccccccccccccc\n");
+    //printf("cccccccccccccccccccccccccccccc\n");
     glutTimerFunc(1000, updateScoreTimer, 0);
 }
 
@@ -843,6 +810,7 @@ void alignment_handler(int sig) {
 
 // Signal handler for pulling phase
 void pulling_handler(int sig) {
+    printf("calling the pulling handler\n");
     pulling_flag = 1;
     EffortMsg msg;
     msg.pid = getpid();
@@ -858,7 +826,7 @@ void pulling_handler(int sig) {
 
 // Signal handler for new round
 void newrnd(int sig){
-    current_round++;
+    current_round++;//for child
     //check if the new round larger than the total round, then terminate.
     if(current_round >= total_rounds +1){
         //terminate
@@ -890,21 +858,18 @@ void child_process(int team, int member) {
     // Set signal handlers using sigset(). if the child gets these signals, go to a custom function, not doing the default behavior.
     sigset(SIGUSR1, alignment_handler);     // Handle alignment signal.
     sigset(SIGUSR2, pulling_handler);       // Handle pulling signal.
-    sigset(SIGPWR, newrnd);                //
+    sigset(SIGPWR, newrnd);                // Handle new round signal.
+    
     // Assign the inherited write end of the pipe.
     child_pipe_fd = pipefd[1];
     
     // Main simulation loop.
     while (1) {
         //printf("current rnd from child: %d\n", current_round);
-        if(current_round < total_rounds +1){
+        if(current_round <= total_rounds){
             //printf("current rnd from child: %d\n", current_round);
-            //printf("Cat\n");
+            printf("Round %d in progress...\n", current_round);
             //enters this always.
-        }
-        else if(current_round == total_rounds){
-           //printf("current rnd from childdd: %d\n", current_round);
-           printf("my name\n");
         }
         else{
             printf("i am here exiting\n");
@@ -913,13 +878,46 @@ void child_process(int team, int member) {
         }
         
         sleep(1);  // Wait for one second per iteration.
-        
+        printf("my fucking flag is %d\n", pulling_flag);
         if (pulling_flag) { //enters in pulling phase.
-            
-           // printf("inside the if");
+         printf("i am here insider\n");
+        // Generate a random number between 0 and 99
+        int chance = rand() % 100;
+        if (chance < FALL_PROBABILITY) {
+            // Save the current energy before falling
+        printf("Player (Team %d Member %d, PID %d) fell!\n", child_team, child_member, getpid());
+        int saved_energy = child_energy;
+        child_energy = 0;  // Set effort to zero
+        EffortMsg msg;
+        msg.pid = getpid();
+        msg.team = child_team;
+        msg.member = child_member;
+        msg.effort = 0;
+        msg.energy = child_energy;
+        msg.decay = child_decay;
+        msg.returnAfter = child_return_after;
+        msg.type = 0;  // periodic update
+        write(child_pipe_fd, &msg, sizeof(msg));
+
+        printf("Player (Team %d Member %d, PID %d) accidentally fell. Recovering for %ds.\n",
+               child_team, child_member, getpid(), child_return_after);
+
+        // Sleep for the recovery period
+        sleep(child_return_after);
+
+        // Restore the saved energy
+        child_energy = saved_energy;
+        
+        // Optionally, send an update after recovery
+        msg.effort = child_energy / ((child_decay == 0) ? 1 : child_decay);
+        msg.energy = child_energy;
+        write(child_pipe_fd, &msg, sizeof(msg));
+
+        } else {
+            // printf("inside the if");
             // Decrement energy during the pulling phase.
             child_energy -= child_decay;
-            if(child_energy <= 0){ child_energy=0;child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
+            //if(child_energy <= 0){ child_energy=0;child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
             if (child_energy <= 0) { // it won't enter this!!
                 // Set energy to 0, send the exhaustion update, and exit.
                 child_energy = 0;
@@ -934,14 +932,20 @@ void child_process(int team, int member) {
                 
                 msg.type = 0;  // periodic update
                 write(child_pipe_fd, &msg, sizeof(msg));
-                printf("Player (Team %d Member %d, PID %d) is exhausted. they will return after %ds.\n",child_team, child_member, getpid(),child_return_after);
-                exit(0); //if they got exhasted they will die, but if they fall, they will return back.
-
+                printf("Player (Team %d Member %d, PID %d) is exhausted. they will return the next round.\n",child_team, child_member, getpid());
+                //exit(0); //if they got exhasted they will die, but if they fall, they will return back.
+                sleep(1000);
 
                 //sleep(child_return_after);child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);
             }
+
+
+        }
+
+  
         }
         
+        printf("en3karnaaaaaaaaaaa\n");
         // Send periodic updates to the parent process.
         EffortMsg msg;
         msg.pid = getpid();
@@ -959,7 +963,17 @@ void child_process(int team, int member) {
 int main(){
     readFile("inputs.txt");
     srand(time(NULL));
-    
+    // Redirect stdout and stderr to an output file
+    // FILE *outputFile = freopen("output.log", "w", stdout);
+    // if (!outputFile) {
+    //     perror("Failed to redirect stdout");
+    //     exit(EXIT_FAILURE);
+    // }
+    // FILE *errorFile = freopen("output.log", "a", stderr);
+    // if (!errorFile) {
+    //     perror("Failed to redirect stderr");
+    //     exit(EXIT_FAILURE);
+    // }
 
     if (pipe(pipefd) == -1) {
         perror("pipe creation failed");
