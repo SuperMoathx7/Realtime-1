@@ -1,11 +1,11 @@
 //remaining things:
-//  1-There is a bug When starting a new round.
+//done  1-There is a bug When starting a new round. Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 //  2-Accidentally falling.
-//  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-//  4-Stop when reaching Win Streak.
+//done  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+//done  4-Stop when reaching Win Streak. Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 //  5-Parent must tell Childs that their team won or lost.
 //  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
-//  7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h> doneeeeeeeee
+//done   7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h> doneeeeeeeeeeeee
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,15 +114,15 @@ void countdownTimer(int value);
 
 
 void countdownTimer(int value) {
-    if (game_phase == 2 && COPY_GAME_DURATION > 0) {  // Pulling phase
-        COPY_GAME_DURATION--;
+    if (game_phase == 2 && GAME_DURATION > 0) {  // Pulling phase
+        GAME_DURATION--;
         glutPostRedisplay(); // Update display
     }
 
     // Keep calling every second regardless, but only decrement if in phase 2
-    if (COPY_GAME_DURATION > 0) {
+    if (GAME_DURATION > 0) {
         glutTimerFunc(1000, countdownTimer, 0);
-    } else if (COPY_GAME_DURATION <= 0) {
+    } else if (GAME_DURATION <= 0) {
         printf("Sumulation ends: Game Duration ends!\n");
 
 
@@ -130,7 +130,7 @@ void countdownTimer(int value) {
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         exit(0);
         
-        //COPY_GAME_DURATION = GAME_DURATION;
+        //GAME_DURATION = GAME_DURATION;
 
         //glutTimerFunc(1000, timer, 0);
     }
@@ -226,11 +226,11 @@ if (!file) {
         exit(8);
     }
     //********************** */
-    if(fscanf(file, "game_duration=%d\n", &GAME_DURATION) !=1){
+    if(fscanf(file, "game_duration=%d\n", &COPY_GAME_DURATION) !=1){
         printf("game_duration is non-integer! Retry again.\n");
         exit(10);
     }
-    if(GAME_DURATION < 0 ){
+    if(COPY_GAME_DURATION < 0 ){
         printf("GAME_DURATION must be positive! Retry again.\n");
         exit(8);
     }
@@ -253,10 +253,9 @@ if (!file) {
         exit(8);
     }
     //********************** */
-    COPY_GAME_DURATION = GAME_DURATION;
+    GAME_DURATION = COPY_GAME_DURATION;
     fclose(file);
 }
-
 
 void drawCircle(float cx, float cy, float r) {
     glBegin(GL_TRIANGLE_FAN);
@@ -283,6 +282,8 @@ void initGL(void) {
     glMatrixMode(GL_MODELVIEW);
 }
 
+// This function is called whenever glotPostRedisplay() is called to
+// update the display
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -315,13 +316,17 @@ glLineWidth(1.0f); // Reset to default
             glColor3f(1.0, 0.0, 0.0);  // red for Team 1
         else
             glColor3f(0.0, 0.0, 1.0);  // blue for Team 2
-
+        
+        // Draw the player as a circle.
         drawCircle(players[i].x, players[i].y, players[i].radius);
         
+        // shows the energy of each player.
         char energyText[20];
         sprintf(energyText, "E:%d", players[i].energy);
         glColor3f(0.0, 0.0, 0.0);
         renderBitmapString(players[i].x - players[i].radius,players[i].y - players[i].radius - 15,GLUT_BITMAP_HELVETICA_12,energyText);
+        
+        // shows the decay of each player.        
         char decatText[20];
         sprintf(decatText, "D:%d", players[i].decay);
         glColor3f(0.0, 0.0, 0.0);
@@ -381,7 +386,7 @@ glLineWidth(1.0f); // Reset to default
 
     //for Timer
     char timerText[50];
-    sprintf(timerText, "Timer: %d", COPY_GAME_DURATION);
+    sprintf(timerText, "Timer: %d", GAME_DURATION);
     glColor3f(0.0, 0.0, 0.0);
     renderBitmapString(WINDOW_WIDTH/2 - 40, WINDOW_HEIGHT -100 , GLUT_BITMAP_HELVETICA_18, timerText);
 
@@ -408,7 +413,8 @@ glLineWidth(1.0f); // Reset to default
             else if (players[i].team == 2)
                 team2_idx[t2++] = i;
         }
-    
+
+        // Sort players in each team by energy in descending order
         for (int i = 0; i < MEMBERS_PER_TEAM - 1; i++) {
             for (int j = i + 1; j < MEMBERS_PER_TEAM; j++) {
                 if (players[team1_idx[i]].energy > players[team1_idx[j]].energy) {
@@ -650,6 +656,7 @@ void timer(int value) {
         //
     }*/
 }
+
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
     printf("Current round is: %d *************\n", current_round);
@@ -696,7 +703,21 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
     if (players[i].team == 1 && players[i].x >= (WINDOW_WIDTH / 2) -15) {
         // Team 1 crossed the center - lose the round
         rounds_won_team2++;
+        consecutiveWinsTeam2++;      // increment team2 consecutive win counter
         printf("Team 1 crossed the midpoint! Team 2 wins Round %d by rule.\n", current_round);
+        consecutiveWinsTeam1 = 0;      // reset team1 consecutive wins
+
+        if (consecutiveWinsTeam2 >= STREAK_TO_WIN) {
+            printf("Team 2 wins the game with a streak of %d times!\n", consecutiveWinsTeam2);
+            for (int i = 0; i < TOTAL_PLAYERS; i++) {
+                kill(players[i].pid, SIGKILL);
+            }
+        
+            exit(0);
+            
+        }
+
+
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
@@ -705,7 +726,20 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
     if (players[i].team == 2 && players[i].x <= (WINDOW_WIDTH / 2) +15) {
         // Team 2 crossed the center - lose the round
         rounds_won_team1++;
+        consecutiveWinsTeam1++;      // increment team1 consecutive win counter
+        consecutiveWinsTeam2 = 0;      // reset team2 consecutive wins
         printf("Team 2 crossed the midpoint! Team 1 wins Round %d by rule.\n", current_round);
+        if (consecutiveWinsTeam1 >= STREAK_TO_WIN) {
+            printf("Team 1 wins the game with a streak of %d times!\n", consecutiveWinsTeam1);
+            for (int i = 0; i < TOTAL_PLAYERS; i++) {
+                kill(players[i].pid, SIGKILL);
+            }
+        
+            exit(0);
+            
+        }
+
+
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
@@ -908,19 +942,23 @@ int main(){
     readFile("inputs.txt");
     srand(time(NULL));
     
+
     if (pipe(pipefd) == -1) {
         perror("pipe creation failed");
         exit(EXIT_FAILURE);
     }
-    pipe_read_fd = pipefd[0];
-    
+    pipe_read_fd = pipefd[0]; // read end of the pipe.
+
+    // Set the read end of the pipe to non-blocking mode
     int flags = fcntl(pipe_read_fd, F_GETFL, 0);
     fcntl(pipe_read_fd, F_SETFL, flags | O_NONBLOCK); // changing the pipe to be non-blocking, - when reading the pipe with no data, it won't stuck.
     
+
     //mkfifo("effort_fifo", 0666); //makes named pipe -fifo- to enable communication between unrelated processes, but it is not used till now!
 
     int idx = 0;
 
+    // creating the players
     for (int i = 0; i < NUM_TEAMS; i++) {
         for (int j = 0; j < MEMBERS_PER_TEAM; j++) {
             pid_t pid = fork();
@@ -930,7 +968,7 @@ int main(){
                 exit(EXIT_FAILURE);
             }
             if (pid == 0) { // the same child.
-                //printf("Hello child %d %d  %d\n", idx ,getpid(), pid);
+                printf("Hello child %d %d  %d\n", idx ,getpid(), pid);
                 child_process(i + 1, j + 1);
                 exit(EXIT_SUCCESS);
             } else { //parent of them all.
