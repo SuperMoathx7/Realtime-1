@@ -1,5 +1,5 @@
-energy_min=80
-energy_max=90
+energy_min=60
+energy_max=100
 decay_min=5
 decay_max=6
 recovery_min=1
