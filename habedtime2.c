@@ -27,6 +27,8 @@
 #define NUM_TEAMS 2//
 #define MEMBERS_PER_TEAM 4//
 #define TOTAL_PLAYERS (NUM_TEAMS * MEMBERS_PER_TEAM)
+#define FALL_PROBABILITY 5   // 5% chance to fall each iteration
+
 
 int INIT_ENERGY_MIN;//
 int INIT_ENERGY_MAX; //
@@ -38,6 +40,7 @@ int GAME_DURATION;
 int STREAK_TO_WIN;
 int THRESHOLD_TO_WIN;
 int COPY_GAME_DURATION;
+
 
 
 // ---------------- Message Structure ----------------
@@ -127,16 +130,18 @@ void countdownTimer(int value) {
 
 
         //current_round++;
-        for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
-        exit(0);
+        for(int k=0;k<TOTAL_PLAYERS; k++) 
+            kill(players[k].pid,SIGKILL);
         
+        exit(0);
         //GAME_DURATION = GAME_DURATION;
 
         //glutTimerFunc(1000, timer, 0);
     }
 }
 
-void handleClose() {  //this kills all related processes when the user closes the GUI.
+// Close the GUI and kill all child processes
+void handleClose() {  
     printf("Window closed by user. Cleaning up...\n");
     
     for (int i = 0; i < TOTAL_PLAYERS; i++) {
@@ -146,6 +151,7 @@ void handleClose() {  //this kills all related processes when the user closes th
     exit(0);
 }
 
+// Read the configuration file and set the parameters
 void readFile(const char *filename) {
     FILE *file = fopen(filename, "r");
 if (!file) {
@@ -257,6 +263,7 @@ if (!file) {
     fclose(file);
 }
 
+// draw a circle
 void drawCircle(float cx, float cy, float r) {
     glBegin(GL_TRIANGLE_FAN);
       glVertex2f(cx, cy);
@@ -267,6 +274,7 @@ void drawCircle(float cx, float cy, float r) {
     glEnd();
 }
 
+// Draw a string at a given position
 void renderBitmapString(float x, float y, void *font, char *string) {
     glRasterPos2f(x, y);
     for (int i = 0; i < strlen(string); i++) {
@@ -660,6 +668,7 @@ void timer(int value) {
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
     printf("Current round is: %d *************\n", current_round);
+    // will execute only if in pulling phase.
     if (game_phase == 2 && current_round <= total_rounds ) { // if in pulling phase.
         printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
@@ -676,7 +685,7 @@ void updateScoreTimer(int value) {
                 team2_idx[t2++] = i;
         }
 
-
+        // Sort players in team 1 by energy in descending order
         for(int i =0; i < MEMBERS_PER_TEAM; i++){
             for(int j =0; j < MEMBERS_PER_TEAM; j++){
                 if (players[team1_idx[i]].energy < players[team1_idx[j]].energy) {
@@ -687,6 +696,7 @@ void updateScoreTimer(int value) {
             }
         }
 
+        // Sort players in team 2 by energy in descending order
         for(int i =0; i < MEMBERS_PER_TEAM; i++){
             for(int j =0; j < MEMBERS_PER_TEAM; j++){
                 if (players[team2_idx[i]].energy < players[team2_idx[j]].energy) {
@@ -716,7 +726,6 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
             exit(0);
             
         }
-
 
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
@@ -817,6 +826,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
     glutTimerFunc(1000, updateScoreTimer, 0);
 }
 
+// Signal handler for alignment phase   
 void alignment_handler(int sig) {
     EffortMsg msg;
     msg.pid = getpid();
@@ -831,6 +841,7 @@ void alignment_handler(int sig) {
     write(child_pipe_fd, &msg, sizeof(msg));
 }
 
+// Signal handler for pulling phase
 void pulling_handler(int sig) {
     pulling_flag = 1;
     EffortMsg msg;
@@ -845,15 +856,22 @@ void pulling_handler(int sig) {
     write(child_pipe_fd, &msg, sizeof(msg));
 }
 
+// Signal handler for new round
 void newrnd(int sig){
     current_round++;
     //check if the new round larger than the total round, then terminate.
     if(current_round >= total_rounds +1){
         //terminate
-       
-        for(int k=0;k<TOTAL_PLAYERS; k++) kill(players[k].pid,SIGKILL);
+        for(int k=0;k<TOTAL_PLAYERS; k++) 
+            kill(players[k].pid,SIGKILL);
         exit(0);
     }
+    // Regenerate the child's parameters for the new round.
+    child_energy = INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);
+    child_decay = DECAY_RATE_MIN + rand() % (DECAY_RATE_MAX - DECAY_RATE_MIN + 1);
+    child_return_after = RECOVERY_TIME_MIN + rand() % (RECOVERY_TIME_MAX - RECOVERY_TIME_MIN + 1);
+
+
     pulling_flag = 0;
 }
 
@@ -968,7 +986,7 @@ int main(){
                 exit(EXIT_FAILURE);
             }
             if (pid == 0) { // the same child.
-                printf("Hello child %d %d  %d\n", idx ,getpid(), pid);
+                //printf("Hello child %d %d  %d\n", idx ,getpid(), pid);
                 child_process(i + 1, j + 1);
                 exit(EXIT_SUCCESS);
             } else { //parent of them all.
