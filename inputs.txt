@@ -1,7 +1,7 @@
 energy_min=60
-energy_max=61
-decay_min=10
-decay_max=12
+energy_max=80
+decay_min=5
+decay_max=6
 recovery_min=1
 recovery_max=3
 threshold=900
