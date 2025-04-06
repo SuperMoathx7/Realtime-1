@@ -27,7 +27,7 @@
 #define NUM_TEAMS 2//
 #define MEMBERS_PER_TEAM 4//
 #define TOTAL_PLAYERS (NUM_TEAMS * MEMBERS_PER_TEAM)
-#define FALL_PROBABILITY 5   // 5% chance to fall each iteration
+#define FALL_PROBABILITY 0   // 5% chance to fall each iteration
 
 
 int INIT_ENERGY_MIN;//
@@ -566,57 +566,6 @@ void updateFromPipe(void) {
     glutPostRedisplay();
 }
 
-// void timer(int value) {
-//     timercaller++;
-//     if(current_round > total_rounds ){
-//         printf("Terminating...\n");
-//         glutLeaveMainLoop();
-//         return;
-//         //exit(0);
-//     }
-//     static int local_phase = 0;
-//     printf("prev is: %d  curr is: %d\n", prev_round, current_round);
-//     if(prev_round != current_round){
-//         game_phase = 0;
-//         local_phase = 0;
-//         prev_round++;
-//     }
-//     //local_phase = 0;
-//     printf("local phase is: %d\n", local_phase);
-//     if (local_phase == 0) {
-//         printf("\nReferee: Triggering alignment phase...\n");
-//         if(current_round > total_rounds +1 ){
-//             printf("Terminating...\n");
-//             glutLeaveMainLoop();
-//             return;
-//             //exit(0);
-//         }
-//         glutIdleFunc(NULL);
-//         alignPlayers();
-//         local_phase = 1;
-//         game_phase = 1;
-//         glutIdleFunc(updateFromPipe);
-//         //sleep(5);
-//         //timer(0);
-//     } else if (local_phase == 1) {
-//         printf("\nReferee: Triggering pulling phase...\n");
-//         startPullingPhase();
-//         local_phase = 2;
-//         game_phase = 2;
-//     }
-
-
-//     if(timercaller != 2){
-//         glutTimerFunc(5000, timer, 0);
-//     }
-//     else{
-//         timercaller = 0;
-//     } 
-//     /*if (current_round <= total_rounds) {
-//         //timer(0);
-//         //
-//     }*/
-// }
 void timer(int value) {
     timercaller++;
     if(current_round > total_rounds){
@@ -654,6 +603,7 @@ void timer(int value) {
 
 
     if(timercaller != 2){
+        printf("entered here\n");
         glutTimerFunc(5000, timer, 0);
     }
     else{
@@ -729,6 +679,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
+        printf("i am erroring here1\n");
         // return;
     }
     if (players[i].team == 2 && players[i].x <= (WINDOW_WIDTH / 2) +15) {
@@ -751,6 +702,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
+        printf("i am erroring here2\n");
         // return;
     }
 }
@@ -768,9 +720,15 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
             if(players[k].energy == 0) counter++;
             
             if(counter == 8){//Tie.........
-                current_round++;//the round will be counted, but no one wins.
+                printf("helllo from hell\n");
+                if(current_round+1 < total_rounds){current_round++;//the round will be counted, but no one wins.}
+                }
+                
                 printf("All players get tried! No one wins! Tieeeeeeeeeeeeeeeeee.\n");
                 for(int f=0;f<TOTAL_PLAYERS;f++)kill(players[f].pid,SIGPWR);//new round.
+                glutTimerFunc(1000, timer, 0);
+
+
             }
         }
 
@@ -831,7 +789,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
             players[i].targetX += displacement;
         }
     }
-    printf("cccccccccccccccccccccccccccccc\n");
+    //printf("cccccccccccccccccccccccccccccc\n");
     glutTimerFunc(1000, updateScoreTimer, 0);
 }
 
@@ -852,6 +810,7 @@ void alignment_handler(int sig) {
 
 // Signal handler for pulling phase
 void pulling_handler(int sig) {
+    printf("calling the pulling handler\n");
     pulling_flag = 1;
     EffortMsg msg;
     msg.pid = getpid();
@@ -867,7 +826,7 @@ void pulling_handler(int sig) {
 
 // Signal handler for new round
 void newrnd(int sig){
-    current_round++;
+    current_round++;//for child
     //check if the new round larger than the total round, then terminate.
     if(current_round >= total_rounds +1){
         //terminate
@@ -919,9 +878,9 @@ void child_process(int team, int member) {
         }
         
         sleep(1);  // Wait for one second per iteration.
-        printf("KOs emak\n");
+        printf("my fucking flag is %d\n", pulling_flag);
         if (pulling_flag) { //enters in pulling phase.
-            
+         printf("i am here insider\n");
         // Generate a random number between 0 and 99
         int chance = rand() % 100;
         if (chance < FALL_PROBABILITY) {
@@ -944,7 +903,7 @@ void child_process(int team, int member) {
                child_team, child_member, getpid(), child_return_after);
 
         // Sleep for the recovery period
-        //sleep(child_return_after);
+        sleep(child_return_after);
 
         // Restore the saved energy
         child_energy = saved_energy;
@@ -986,6 +945,7 @@ void child_process(int team, int member) {
   
         }
         
+        printf("en3karnaaaaaaaaaaa\n");
         // Send periodic updates to the parent process.
         EffortMsg msg;
         msg.pid = getpid();
@@ -1003,7 +963,17 @@ void child_process(int team, int member) {
 int main(){
     readFile("inputs.txt");
     srand(time(NULL));
-    
+    // Redirect stdout and stderr to an output file
+    // FILE *outputFile = freopen("output.log", "w", stdout);
+    // if (!outputFile) {
+    //     perror("Failed to redirect stdout");
+    //     exit(EXIT_FAILURE);
+    // }
+    // FILE *errorFile = freopen("output.log", "a", stderr);
+    // if (!errorFile) {
+    //     perror("Failed to redirect stderr");
+    //     exit(EXIT_FAILURE);
+    // }
 
     if (pipe(pipefd) == -1) {
         perror("pipe creation failed");

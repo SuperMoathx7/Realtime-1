@@ -7,5 +7,5 @@ recovery_max=3
 threshold=900
 game_duration=80
 score_limit=5
-total_rounds=7
+total_rounds=5
 
