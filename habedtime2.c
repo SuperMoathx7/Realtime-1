@@ -39,6 +39,7 @@ int STREAK_TO_WIN;
 int THRESHOLD_TO_WIN;
 int COPY_GAME_DURATION;
 
+
 // ---------------- Message Structure ----------------
 // type: 0 = periodic update, 1 = alignment update, 2 = pulling update.
 typedef struct {
@@ -91,6 +92,10 @@ int rounds_won_team2 = 0;     // Rounds won by Team 2
 int user_defined_distance = 500;  // Distance needed to win a round (user-defined)
 int totalEffort_threshold = 20;     // totalEffort threshold to compute distance
 int timercaller = 0;
+int consecutiveWinsTeam1 = 0;
+int consecutiveWinsTeam2 = 0;
+
+
 // ---------------- Function Declarations ----------------
 void initGL(void);
 void display(void);
@@ -662,7 +667,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
                 return; // No more rounds
             }
         }
-*/
+*/  
         // Smaller displacement for clearer pulling effect
        /* int displacement = (totalEffort > 10) ? -10 : (totalEffort < -10) ? 10 : 0;
         for (int i = 0; i < TOTAL_PLAYERS; i++) {
