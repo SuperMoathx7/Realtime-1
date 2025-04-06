@@ -5,7 +5,7 @@ decay_max=6
 recovery_min=1
 recovery_max=3
 threshold=900
-game_duration=150
+game_duration=80
 score_limit=2
-total_rounds=2
+total_rounds=5
 

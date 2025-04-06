@@ -5,7 +5,7 @@
 //  4-Stop when reaching Win Streak.
 //  5-Parent must tell Childs that their team won or lost.
 //  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
-//  7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h>
+//  7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h> doneeeeeeeee
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -457,9 +457,60 @@ void updateFromPipe(void) {
     glutPostRedisplay();
 }
 
+// void timer(int value) {
+//     timercaller++;
+//     if(current_round > total_rounds ){
+//         printf("Terminating...\n");
+//         glutLeaveMainLoop();
+//         return;
+//         //exit(0);
+//     }
+//     static int local_phase = 0;
+//     printf("prev is: %d  curr is: %d\n", prev_round, current_round);
+//     if(prev_round != current_round){
+//         game_phase = 0;
+//         local_phase = 0;
+//         prev_round++;
+//     }
+//     //local_phase = 0;
+//     printf("local phase is: %d\n", local_phase);
+//     if (local_phase == 0) {
+//         printf("\nReferee: Triggering alignment phase...\n");
+//         if(current_round > total_rounds +1 ){
+//             printf("Terminating...\n");
+//             glutLeaveMainLoop();
+//             return;
+//             //exit(0);
+//         }
+//         glutIdleFunc(NULL);
+//         alignPlayers();
+//         local_phase = 1;
+//         game_phase = 1;
+//         glutIdleFunc(updateFromPipe);
+//         //sleep(5);
+//         //timer(0);
+//     } else if (local_phase == 1) {
+//         printf("\nReferee: Triggering pulling phase...\n");
+//         startPullingPhase();
+//         local_phase = 2;
+//         game_phase = 2;
+//     }
+
+
+//     if(timercaller != 2){
+//         glutTimerFunc(5000, timer, 0);
+//     }
+//     else{
+//         timercaller = 0;
+//     } 
+//     /*if (current_round <= total_rounds) {
+//         //timer(0);
+//         //
+//     }*/
+// }
 void timer(int value) {
     timercaller++;
-    if(current_round > total_rounds ){
+    if(current_round > total_rounds){
         printf("Terminating...\n");
         glutLeaveMainLoop();
         return;
@@ -476,12 +527,6 @@ void timer(int value) {
     printf("local phase is: %d\n", local_phase);
     if (local_phase == 0) {
         printf("\nReferee: Triggering alignment phase...\n");
-        if(current_round > total_rounds +1 ){
-            printf("Terminating...\n");
-            glutLeaveMainLoop();
-            return;
-            //exit(0);
-        }
         glutIdleFunc(NULL);
         alignPlayers();
         local_phase = 1;
@@ -491,7 +536,9 @@ void timer(int value) {
         //timer(0);
     } else if (local_phase == 1) {
         printf("\nReferee: Triggering pulling phase...\n");
+        
         startPullingPhase();
+        printf("current jjjj\n");
         local_phase = 2;
         game_phase = 2;
     }
@@ -508,11 +555,10 @@ void timer(int value) {
         //
     }*/
 }
-
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
     printf("Current round is: %d *************\n", current_round);
-    if (game_phase == 2 && current_round < total_rounds ) { // if in pulling phase.
+    if (game_phase == 2 && current_round <= total_rounds ) { // if in pulling phase.
         printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
         int team2_effort = 0;
@@ -559,7 +605,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
-        return;
+        // return;
     }
     if (players[i].team == 2 && players[i].x <= (WINDOW_WIDTH / 2) +15) {
         // Team 2 crossed the center - lose the round
@@ -568,7 +614,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         current_round++;
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
-        return;
+        // return;
     }
 }
 //******************************************************************* */
@@ -638,6 +684,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
             players[i].targetX += displacement;
         }
     }
+    printf("cccccccccccccccccccccccccccccc\n");
     glutTimerFunc(1000, updateScoreTimer, 0);
 }
 
@@ -725,7 +772,7 @@ void child_process(int team, int member) {
            // printf("inside the if");
             // Decrement energy during the pulling phase.
             child_energy -= child_decay;
-            //if(child_energy <= 0){ child_energy=0; sleep(5);child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
+            if(child_energy <= 0){ child_energy=0;child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
             if (child_energy <= 0) { // it won't enter this!!
                 // Set energy to 0, send the exhaustion update, and exit.
                 child_energy = 0;
