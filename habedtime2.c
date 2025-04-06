@@ -659,9 +659,9 @@ void timer(int value) {
 
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
-    printf("Current round is: %d *************\n", current_round);
+   // printf("Current round is: %d *************\n", current_round);
     if (game_phase == 2 && current_round <= total_rounds ) { // if in pulling phase.
-        printf("Current round is: %d *************\n", current_round);
+        //printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
         int team2_effort = 0;
         int team1_idx[4], team2_idx[4];
@@ -669,14 +669,14 @@ void updateScoreTimer(int value) {
 
         // Collect indices per team
         for (int i = 0; i < TOTAL_PLAYERS; i++) {
-            printf("Player %d targetX: %f\n", i, players[i].targetX);
+           // printf("Player %d targetX: %f\n", i, players[i].targetX);
             if (players[i].team == 1)
                 team1_idx[t1++] = i;
             else if (players[i].team == 2)
                 team2_idx[t2++] = i;
         }
 
-
+//for sorting team members.
         for(int i =0; i < MEMBERS_PER_TEAM; i++){
             for(int j =0; j < MEMBERS_PER_TEAM; j++){
                 if (players[team1_idx[i]].energy < players[team1_idx[j]].energy) {
@@ -755,6 +755,16 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         int totalEffort = team1_effort - team2_effort;
         global_totalEffort = totalEffort;
 
+        int counter=0;
+        for(int k =0;k<TOTAL_PLAYERS;k++){
+            if(players[k].energy == 0) counter++;
+            
+            if(counter == 8){//Tie.........
+                current_round++;//the round will be counted, but no one wins.
+                printf("All players get tried! No one wins! Tieeeeeeeeeeeeeeeeee.\n");
+                for(int f=0;f<TOTAL_PLAYERS;f++)kill(players[f].pid,SIGPWR);//new round.
+            }
+        }
 
         //i changed the win criteria, the team wins if the another team reached the midpoint line.
 
@@ -901,7 +911,7 @@ void child_process(int team, int member) {
            // printf("inside the if");
             // Decrement energy during the pulling phase.
             child_energy -= child_decay;
-            if(child_energy <= 0){ child_energy=0;child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
+            //if(child_energy <= 0){ child_energy=0;child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);}
             if (child_energy <= 0) { // it won't enter this!!
                 // Set energy to 0, send the exhaustion update, and exit.
                 child_energy = 0;
@@ -916,9 +926,9 @@ void child_process(int team, int member) {
                 
                 msg.type = 0;  // periodic update
                 write(child_pipe_fd, &msg, sizeof(msg));
-                printf("Player (Team %d Member %d, PID %d) is exhausted. they will return after %ds.\n",child_team, child_member, getpid(),child_return_after);
-                exit(0); //if they got exhasted they will die, but if they fall, they will return back.
-
+                printf("Player (Team %d Member %d, PID %d) is exhausted. they will return the next round.\n",child_team, child_member, getpid());
+                //exit(0); //if they got exhasted they will die, but if they fall, they will return back.
+                sleep(1000);
 
                 //sleep(child_return_after);child_energy =  INIT_ENERGY_MIN + rand() % (INIT_ENERGY_MAX - INIT_ENERGY_MIN + 1);
             }
