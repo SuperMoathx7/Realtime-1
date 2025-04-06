@@ -127,7 +127,7 @@ void countdownTimer(int value) {
         glutTimerFunc(1000, countdownTimer, 0);
     } else if (GAME_DURATION <= 0) {
         printf("Sumulation ends: Game Duration ends!\n");
-
+        printFinalSummary();
 
         //current_round++;
         for(int k=0;k<TOTAL_PLAYERS; k++) 
@@ -334,7 +334,7 @@ glLineWidth(1.0f); // Reset to default
         glColor3f(0.0, 0.0, 0.0);
         renderBitmapString(players[i].x - players[i].radius,players[i].y - players[i].radius - 15,GLUT_BITMAP_HELVETICA_12,energyText);
         
-        // shows the decay of each player.        
+        // shows the decay of each player.
         char decatText[20];
         sprintf(decatText, "D:%d", players[i].decay);
         glColor3f(0.0, 0.0, 0.0);
@@ -570,6 +570,7 @@ void timer(int value) {
     timercaller++;
     if(current_round > total_rounds){
         printf("Terminating...\n");
+        printFinalSummary();
         glutLeaveMainLoop();
         return;
         //exit(0);
@@ -668,15 +669,15 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
 
         if (consecutiveWinsTeam2 >= STREAK_TO_WIN) {
             printf("Team 2 wins the game with a streak of %d times!\n", consecutiveWinsTeam2);
+            printFinalSummary();
             for (int i = 0; i < TOTAL_PLAYERS; i++) {
-                kill(players[i].pid, SIGKILL);
+                kill(players[i].pid, SIGPWR);
             }
-        
-            exit(0);
-            
+            exit(0); 
         }
 
         current_round++;
+        if(current_round >= total_rounds +1) printFinalSummary();
         for (int k = 0; k < TOTAL_PLAYERS; k++) kill(players[k].pid, SIGPWR);
         glutTimerFunc(1000, timer, 0);
         printf("i am erroring here1\n");
@@ -690,8 +691,9 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         printf("Team 2 crossed the midpoint! Team 1 wins Round %d by rule.\n", current_round);
         if (consecutiveWinsTeam1 >= STREAK_TO_WIN) {
             printf("Team 1 wins the game with a streak of %d times!\n", consecutiveWinsTeam1);
+            printFinalSummary();
             for (int i = 0; i < TOTAL_PLAYERS; i++) {
-                kill(players[i].pid, SIGKILL);
+                kill(players[i].pid, SIGPWR);
             }
         
             exit(0);
@@ -958,6 +960,20 @@ void child_process(int team, int member) {
         msg.type = 0;  // periodic update
         write(child_pipe_fd, &msg, sizeof(msg));
     }
+}
+
+// Function to print the final game summary.
+void printFinalSummary(void) {
+    printf("\n========== Game Summary ==========\n");
+    printf("Rounds Won by Team 1: %d\n", rounds_won_team1);
+    printf("Rounds Won by Team 2: %d\n", rounds_won_team2);
+    if (rounds_won_team1 > rounds_won_team2)
+        printf("Team 1 wins the game!\n");
+    else if (rounds_won_team2 > rounds_won_team1)
+        printf("Team 2 wins the game!\n");
+    else
+        printf("The game is a tie!\n");
+    printf("========================================\n");
 }
 
 int main(){
