@@ -622,7 +622,7 @@ void timer(int value) {
 
 void updateScoreTimer(int value) {
     printf("current phase is: %d\n", game_phase);
-    printf("Current round is: %d *************\n", current_round);
+   // printf("Current round is: %d *************\n", current_round);
     if (game_phase == 2 && current_round <= total_rounds ) { // if in pulling phase.
         //printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
@@ -639,7 +639,7 @@ void updateScoreTimer(int value) {
                 team2_idx[t2++] = i;
         }
 
-
+//for sorting team members.
         for(int i =0; i < MEMBERS_PER_TEAM; i++){
             for(int j =0; j < MEMBERS_PER_TEAM; j++){
                 if (players[team1_idx[i]].energy < players[team1_idx[j]].energy) {
@@ -738,22 +738,6 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         int totalEffort = team1_effort - team2_effort;
         global_totalEffort = totalEffort;
 
-        int counter=0;
-        for(int k =0;k<TOTAL_PLAYERS;k++){
-            if(players[k].energy == 0) counter++;
-            
-            if(counter == 8){//Tie.........
-                printf("helllo from hell\n");
-                if(current_round+1 < total_rounds){current_round++;//the round will be counted, but no one wins.}
-                }
-                
-                printf("All players get tried! No one wins! Tieeeeeeeeeeeeeeeeee.\n");
-                for(int f=0;f<TOTAL_PLAYERS;f++)kill(players[f].pid,SIGPWR);//new round.
-                glutTimerFunc(1000, timer, 0);
-
-
-            }
-        }
 
         //i changed the win criteria, the team wins if the another team reached the midpoint line.
 
