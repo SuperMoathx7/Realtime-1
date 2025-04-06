@@ -674,7 +674,7 @@ void updateScoreTimer(int value) {
     EffortMsg msg;
 
     printf("current phase is: %d\n", game_phase);
-    printf("Current round is: %d *************\n", current_round);
+   // printf("Current round is: %d *************\n", current_round);
     if (game_phase == 2 && current_round <= total_rounds ) { // if in pulling phase.
         //printf("Current round is: %d *************\n", current_round);
         int team1_effort = 0;
@@ -691,7 +691,7 @@ void updateScoreTimer(int value) {
                 team2_idx[t2++] = i;
         }
 
-
+//for sorting team members.
         for(int i =0; i < MEMBERS_PER_TEAM; i++){
             for(int j =0; j < MEMBERS_PER_TEAM; j++){
                 if (players[team1_idx[i]].energy < players[team1_idx[j]].energy) {
