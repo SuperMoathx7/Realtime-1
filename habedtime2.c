@@ -1,10 +1,10 @@
 //remaining things:
 //done  1-There is a bug When starting a new round. Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-//  2-Accidentally falling.
+//done  2-Accidentally falling.
 //done  3-Stop when reaching game Duration.  Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 //done  4-Stop when reaching Win Streak. Doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 //  5-Parent must tell Childs that their team won or lost.
-//  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
+//done  6-Bug: if all energies reach zero in a pulling phase in a round, the game will stuck till the end of the timer. Must we fix it? or it is realistic case?
 //done   7-Energy in new round didn't generated again, it contiunues with the last values.#include <stdio.h> doneeeeeeeeeeeee
 
 #include <stdio.h>
@@ -27,7 +27,7 @@
 #define NUM_TEAMS 2//
 #define MEMBERS_PER_TEAM 4//
 #define TOTAL_PLAYERS (NUM_TEAMS * MEMBERS_PER_TEAM)
-#define FALL_PROBABILITY 0   // 5% chance to fall each iteration
+#define FALL_PROBABILITY 5   // 5% chance to fall each iteration
 
 
 int INIT_ENERGY_MIN;//
