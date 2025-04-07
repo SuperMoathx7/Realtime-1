@@ -52,6 +52,7 @@ typedef struct {
     int effort;     // computed as energy/decay_rate (child-side computation)
     int energy,decay,returnAfter;     // current energy (child-side)
     int type;       // message type
+    // char result [10];
 } EffortMsg;
 
 // ---------------- Player Display Structure ----------------
@@ -71,6 +72,9 @@ PlayerInfo players[TOTAL_PLAYERS]; //must be changed if total number of players 
 // ---------------- Global IPC Descriptors ----------------
 int pipefd[2];     // pipefd[0] is used by the parent for reading; pipefd[1] is inherited by children.
 int pipe_read_fd;  // alias for parent's read end
+
+int result_pipefd[2]; // result_pipefd[0]: read (child), result_pipefd[1]: write (parent)
+
 
 // ---------------- Globals in Child Processes ----------------
 // (Each child)
@@ -656,7 +660,7 @@ void updateScoreTimer(int value) {
                 }
             } 
         }
-
+        int losing_team = 0;
         //******************************************* */
 // Midpoint defeat rule: if any player crosses the center line, their team loses
 for (int i = 0; i < TOTAL_PLAYERS; i++) {
@@ -666,6 +670,8 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         consecutiveWinsTeam2++;      // increment team2 consecutive win counter
         printf("Team 1 crossed the midpoint! Team 2 wins Round %d by rule.\n", current_round);
         consecutiveWinsTeam1 = 0;      // reset team1 consecutive wins
+        losing_team = 1; // Set losing team to 1
+
 
         if (consecutiveWinsTeam2 >= STREAK_TO_WIN) {
             printf("Team 2 wins the game with a streak of %d times!\n", consecutiveWinsTeam2);
@@ -689,6 +695,7 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         consecutiveWinsTeam1++;      // increment team1 consecutive win counter
         consecutiveWinsTeam2 = 0;      // reset team2 consecutive wins
         printf("Team 2 crossed the midpoint! Team 1 wins Round %d by rule.\n", current_round);
+        losing_team = 2; // Set losing team to 2
         if (consecutiveWinsTeam1 >= STREAK_TO_WIN) {
             printf("Team 1 wins the game with a streak of %d times!\n", consecutiveWinsTeam1);
             printFinalSummary();
@@ -707,6 +714,20 @@ for (int i = 0; i < TOTAL_PLAYERS; i++) {
         printf("i am erroring here2\n");
         // return;
     }
+
+
+    // for (int i = 0; i < TOTAL_PLAYERS; i++) {
+    //     EffortMsg msg = {0};
+    //     msg.pid = players[i].pid;
+    //     msg.team = players[i].team;
+    //     msg.member = players[i].member;
+    //     strncpy(msg.result,
+    //             (players[i].team == losing_team) ? "Loss" : "Win",
+    //             sizeof(msg.result));
+    //     write(result_pipefd[1], &msg, sizeof(EffortMsg));
+    // }
+
+
 }
 //******************************************************************* */
         // Calculate effective efforts
@@ -828,6 +849,18 @@ void pulling_handler(int sig) {
 
 // Signal handler for new round
 void newrnd(int sig){
+    
+/*
+    EffortMsg msg;
+    while (1) {
+        int n = read(result_pipefd[0], &msg, sizeof(EffortMsg));
+        if (n > 0 && msg.pid == getpid()) {
+            printf("Child (%d,%d) got result: %s\n", child_team, child_member, msg.result);
+            break;
+        }
+    }*/
+    
+    
     current_round++;//for child
     //check if the new round larger than the total round, then terminate.
     if(current_round >= total_rounds +1){
@@ -997,10 +1030,18 @@ int main(){
     }
     pipe_read_fd = pipefd[0]; // read end of the pipe.
 
+
+    // if (pipe(result_pipefd) == -1) {
+    //     perror("result pipe creation failed");
+    //     exit(EXIT_FAILURE);
+    // }
+    
     // Set the read end of the pipe to non-blocking mode
     int flags = fcntl(pipe_read_fd, F_GETFL, 0);
     fcntl(pipe_read_fd, F_SETFL, flags | O_NONBLOCK); // changing the pipe to be non-blocking, - when reading the pipe with no data, it won't stuck.
     
+    // int flags2 = fcntl(result_pipefd[0], F_GETFL, 0);
+    // fcntl(result_pipefd[0], F_SETFL, flags2 | O_NONBLOCK); // changing the pipe to be non-blocking, - when reading the pipe with no data, it won't stuck.
 
     //mkfifo("effort_fifo", 0666); //makes named pipe -fifo- to enable communication between unrelated processes, but it is not used till now!
 
@@ -1019,6 +1060,7 @@ int main(){
                 //printf("Hello child %d %d  %d\n", idx ,getpid(), pid);
                 child_process(i + 1, j + 1);
                 exit(EXIT_SUCCESS);
+                //close(result_pipefd[1]); // Close unused 
             } else { //parent of them all.
                 //printf("parent %d %d\n", getpid(),pid);
                 players[idx].team = i + 1;
@@ -1034,6 +1076,7 @@ int main(){
                 players[idx].decay = 0;
                 players[idx].returnAfter=0;
                 idx++;
+                //close(result_pipefd[0]); // Close unused 
             }
         }
     }
