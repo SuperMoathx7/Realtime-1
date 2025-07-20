@@ -291,7 +291,6 @@ total_rounds=5         # Total number of rounds
 <b style="font-size: 16px;">SuperMoathx7</b>
 </a>
 <br />
-<span title="Core Architecture">🏗️</span>
 </td>
 <td align="center">
 <a href="https://github.com/osaidnur">
@@ -300,7 +299,6 @@ total_rounds=5         # Total number of rounds
 <b style="font-size: 16px;">Osaid Nur</b>
 </a>
 <br />
-<span title="Visualization">📊</span>
 </td>
 <td align="center">
 <a href="https://github.com/3ahma">
@@ -309,7 +307,6 @@ total_rounds=5         # Total number of rounds
 <b style="font-size: 16px;">Ahmad Hussin</b>
 </a>
 <br />
-<span title="Gang Implementation">👥</span>
 </td>
 <td align="center">
 <a href="https://github.com/MoaidKarakra">
@@ -318,7 +315,6 @@ total_rounds=5         # Total number of rounds
 <b style="font-size: 16px;">Moaid Karakra</b>
 </a>
 <br />
-<span title="Police & Intelligence">🚔</span>
 </td>
 </tr>
 </table>
