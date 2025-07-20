@@ -187,8 +187,8 @@ sudo yum install freeglut-devel mesa-libGL-devel mesa-libGLU-devel
 ### Building the Project
 ```bash
 # Clone the repository
-git clone https://github.com/SuperMoathx7/Realtime-1.git
-cd Realtime-1
+git clone https://github.com/SuperMoathx7/Real-Time-Tug-of-war-Simulator.git
+cd Real-Time-Tug-of-war-Simulator
 
 # Build and run
 make run
@@ -329,14 +329,5 @@ total_rounds=5         # Total number of rounds
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- OpenGL community for graphics programming resources
-- POSIX standards committee for IPC specifications
-- Real-time systems research community for inspiration
-
 ---
 
-<div align="center">
-<b>Built with ❤️ using C, OpenGL, and Unix IPC</b>
-</div>
