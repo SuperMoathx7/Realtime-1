@@ -7,6 +7,7 @@ A real-time multi-process tug-of-war game implemented in C using OpenGL for visu
 
 - [🚀 Features](#-features)
 - [🎬 Sample Run Video](#-sample-run-video)
+- [📁 Project Structure](#-project-structure)
 - [🏗️ Architecture Overview](#️-architecture-overview)
 - [🔧 Implementation Details](#-implementation-details)
 - [📡 Communication Techniques](#-communication-techniques)
@@ -34,6 +35,40 @@ https://github.com/user-attachments/assets/90d6f4f9-0265-4867-80f0-9affed165215
 
 > 📽️ The video shows players aligning at the start of each round, followed by the intense pulling phase where energy levels determine team success.
 
+## 📁 Project Structure
+
+```
+Real-Time-Tug-of-War-Simulator/
+├── 📄 main.c                    # Main program entry point and process orchestration
+├── 👥 player.c                  # Player process implementation and behavior
+├── 🏛️ referee.c                 # Game state management and referee logic
+├── 🎨 gui.c                     # OpenGL visualization and rendering engine
+├── 📡 signalsHand.c             # Signal handlers for inter-process communication
+├── 🌐 global.c                  # Global variable definitions and initialization
+├── 📖 readFile.c                # Configuration file parser and validation
+├── 📋 headers.h                 # Shared data structures and function declarations
+├── ⚙️ inputs.txt                # Game configuration parameters
+├── 🔨 makefile                  # Build automation and compilation rules
+├── 📚 README.md                 # Project documentation (this file)
+├── 🎬 sample_run/               # Sample execution videos and demos
+│   └── Sample Run.mp4           # Demonstration video of the simulation
+└── 📦 main                      # Compiled executable (generated after build)
+```
+
+### 📂 File Descriptions
+
+| File | Purpose | Key Functionality |
+|------|---------|------------------|
+| `main.c` | 🚀 **Entry Point** | Process creation, IPC setup, OpenGL initialization |
+| `player.c` | 👤 **Player Logic** | Energy management, signal handling, autonomous behavior |
+| `referee.c` | ⚖️ **Game Control** | Phase coordination, scoring, win condition checking |
+| `gui.c` | 🎮 **Visualization** | Real-time rendering, player positioning, UI display |
+| `signalsHand.c` | 📶 **Communication** | Signal handlers for phase transitions and coordination |
+| `global.c` | 🌍 **State Management** | Global variable initialization and configuration |
+| `readFile.c` | 📄 **Configuration** | Input parsing, validation, parameter loading |
+| `headers.h` | 📚 **Definitions** | Shared structures, constants, function prototypes |
+| `inputs.txt` | ⚙️ **Settings** | Game parameters, energy ranges, timing configuration |
+| `makefile` | 🔧 **Build System** | Compilation rules, linking, and execution commands |
 
 ## 🏗️ Architecture Overview
 
